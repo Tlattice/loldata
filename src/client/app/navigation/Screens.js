@@ -23,7 +23,7 @@ const Drawer = createDrawerNavigator();
 
 const profile = {
   avatar: Images.Profile,
-  name: "Rachel Brown",
+  name: "Rachel Black",
   type: "Seller",
   plan: "Pro",
   rating: 4.8
@@ -128,13 +128,13 @@ function AppStack(props) {
         <CustomDrawerContent {...props} profile={profile} />
       )}
       drawerStyle={{
-        backgroundColor: "white",
+        backgroundColor: "rgb(40, 40, 40)",
         width: width * 0.8
       }}
       drawerContentOptions={{
-        activeTintColor: "white",
+        activeTintColor: "rgb(255, 255, 255)",
         inactiveTintColor: "#000",
-        activeBackgroundColor: materialTheme.COLORS.ACTIVE,
+        activeBackgroundColor: "rgb(255, 255, 255)",
         inactiveBackgroundColor: "transparent",
         itemStyle: {
           width: width * 0.74,
@@ -161,7 +161,7 @@ function AppStack(props) {
               size={16}
               name="shop"
               family="GalioExtra"
-              color={focused ? "white" : materialTheme.COLORS.MUTED}
+              color={focused ? "black" : "rgb(181, 101, 21)"}
             />
           )
         }}
@@ -177,48 +177,6 @@ function AppStack(props) {
               family="ionicon"
               color={focused ? "white" : materialTheme.COLORS.MUTED}
               style={{ marginLeft: 4, marginRight: 4 }}
-            />
-          )
-        }}
-      />
-      <Drawer.Screen
-        name="Man"
-        component={ProScreen}
-        options={{
-          drawerIcon: ({ focused }) => (
-            <Icon
-              size={16}
-              name="man"
-              family="entypo"
-              color={focused ? "white" : materialTheme.COLORS.MUTED}
-            />
-          )
-        }}
-      />
-      <Drawer.Screen
-        name="Kids"
-        component={ProScreen}
-        options={{
-          drawerIcon: ({ focused }) => (
-            <Icon
-              size={16}
-              name="baby"
-              family="GalioExtra"
-              color={focused ? "white" : materialTheme.COLORS.MUTED}
-            />
-          )
-        }}
-      />
-      <Drawer.Screen
-        name="New Collection"
-        component={ProScreen}
-        options={{
-          drawerIcon: ({ focused }) => (
-            <Icon
-              size={16}
-              name="grid-on"
-              family="material"
-              color={focused ? "white" : materialTheme.COLORS.MUTED}
             />
           )
         }}
@@ -248,21 +206,6 @@ function AppStack(props) {
               family="font-awesome"
               color={focused ? "white" : materialTheme.COLORS.MUTED}
               style={{ marginRight: -3 }}
-            />
-          )
-        }}
-      />
-      <Drawer.Screen
-        name="Components"
-        component={ComponentsStack}
-        options={{
-          drawerIcon: ({ focused }) => (
-            <Icon
-              size={16}
-              name="md-switch"
-              family="ionicon"
-              color={focused ? "white" : materialTheme.COLORS.MUTED}
-              style={{ marginRight: 2, marginLeft: 2 }}
             />
           )
         }}

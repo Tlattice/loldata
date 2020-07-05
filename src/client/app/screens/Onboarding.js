@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ImageBackground, StyleSheet, StatusBar, Dimensions, Platform } from 'react-native';
 import { Block, Button, Text, theme } from 'galio-framework';
 
@@ -8,6 +8,7 @@ import materialTheme from '../constants/Theme';
 import Images from '../constants/Images';
 
 export default class Onboarding extends React.Component {
+  
   render() {
     const { navigation } = this.props;
 
@@ -17,20 +18,20 @@ export default class Onboarding extends React.Component {
         <Block flex center>
           <ImageBackground
             source={{  uri: Images.Onboarding }}
-            style={{ height: height, width: width, marginTop: '-55%', zIndex: 1 }}
+            style={{ height: height, width: width, marginTop: '0%', zIndex: 1, position: 'relative', top: 0, left: 0  }}
           />
         </Block>
         <Block flex space="between" style={styles.padded}>
           <Block flex space="around" style={{ zIndex: 2 }}>
             <Block>
               <Block>
-                <Text color="white" size={60}>Material</Text>
+                <Text color="white" size={60}>Rift</Text>
               </Block>
               <Block row>
-                <Text color="white" size={60}>Kit</Text>
+                <Text color="white" size={60}>Guru</Text>
               </Block>
               <Text size={16} color='rgba(255,255,255,0.6)'>
-                Fully coded React Native components.
+                AI powered League of Legends prediction tool
               </Text>
             </Block>
             <Block center>
@@ -62,6 +63,6 @@ const styles = StyleSheet.create({
     width: width - theme.SIZES.BASE * 4,
     height: theme.SIZES.BASE * 3,
     shadowRadius: 0,
-    shadowOpacity: 0,
+    shadowOpacity: 50,
   },
 });

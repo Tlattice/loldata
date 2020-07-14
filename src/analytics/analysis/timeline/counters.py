@@ -29,24 +29,35 @@ class Counter:
     def __count_up(self):
         if self.count < self.maxbound:
             self.count += 1
+            #print "count up!"
     def __count_down(self):
         if self.minbound < self.count:
             self.count -= 1
     def __call__(self, frame):
         if self.add_cond(frame):
             self.__count_up()
+            return True
         elif self.sub_cond(frame):
             self.__count_down()
+            return False
     def getcount(self):
         return self.count
 
 class Marker:
-    def __init__(self, trigger, counter):
+    def __init__(self, description, trigger, counter):
+        self.description = description
         self.trigger = trigger
         self.counter = counter
     def __call__(self, frame):
         self.trigger(frame)
         if self.trigger.iscapturing():
-            self.counter(frame)
+            return self.counter(frame)
     def count(self):
         return self.counter.getcount()
+
+    def desc(self):
+        return self.description
+
+    def printl(self):
+        print self.description
+        print self.counter.getcount()

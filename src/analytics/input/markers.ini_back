@@ -1,0 +1,134 @@
+[CONFIG]
+VERBOSE = true
+
+[mem.tower]
+float pblue = 0
+
+[mk.enemy_jungle_invade]
+description = Enemy jungle invade
+#starttimes=[0, 10*60, 20*60, 30*60, 40*60]
+start_condition = return f.payload.timestamp == 0
+stop_condition = return f.payload.timestamp == minute(3)
+count_policy =$
+    $if(f.type == TYPE.PLAYER_STAT and ROLE[f.payload.participantId] == team.red.jg):
+    $   #print(c)
+    $   return (c+1) if area.blue.jg(f.payload.position) else c
+    $else:
+    $   return c
+
+[mk.enemy_jungle_harassment]
+description = Enemy jungle harassment
+#starttimes=[0, 10*60, 20*60, 30*60, 40*60]
+start_condition = return f.type == TYPE.PLAYER_STAT and f.payload.timestamp == minute(3)
+stop_condition = return f.type == TYPE.PLAYER_STAT and f.payload.timestamp == minute(10)
+count_policy =$
+    $if(f.type == TYPE.PLAYER_STAT and ROLE[f.payload.participantId] == team.red.jg):
+    $   #print(c)
+    $   return (c+1) if area.blue.jg(f.payload.position) else c
+    $else:
+    $   return c
+
+[mem.position]
+bool done = False
+int red_top = 0
+int cs_rtop = 0
+int red_mid = 0
+int cs_rmid = 0
+int red_adc = 0
+int cs_radc = 0
+int red_supp = 0
+int cs_rsupp = 0
+int red_jg = 0
+int cs_rjg = 0
+int blue_top = 0
+int cs_btop = 0
+int blue_mid = 0
+int cs_bmid = 0
+int blue_adc = 0
+int cs_badc = 0
+int blue_supp = 0
+int cs_bsupp = 0
+int blue_jg = 0
+int cs_bjg = 0
+
+[mk.position_updater]
+start_condition = return f.type == TYPE.PLAYER_STAT and f.payload.timestamp < minute(10)
+stop_condition = mem.position.done = (f.type != TYPE.PLAYER_STAT); return f.type != TYPE.PLAYER_STAT
+count_policy =$
+    $r = ROLE[f.payload.participantId]
+    $if(r == team.red.top):
+    $   mem.position.red_top = f.payload.position
+    $   mem.position.cs_rtop = f.payload.minionsKilled
+    $elif(r == team.red.mid):
+    $   mem.position.red_mid = f.payload.position
+    $   mem.position.cs_rmid = f.payload.minionsKilled
+    $elif(r == team.red.adc):
+    $   mem.position.red_adc = f.payload.position
+    $   mem.position.cs_radc = f.payload.minionsKilled
+    $elif(r == team.red.supp):
+    $   mem.position.red_supp = f.payload.position
+    $   mem.position.cs_rsupp = f.payload.minionsKilled
+    $elif(r == team.red.jg):
+    $   mem.position.red_jg = f.payload.position
+    $   mem.position.cs_rjg = f.payload.minionsKilled
+    $elif(r == team.blue.adc):
+    $   mem.position.blue_adc = f.payload.position
+    $   mem.position.cs_badc = f.payload.minionsKilled
+    $elif(r == team.blue.top):
+    $   mem.position.blue_top = f.payload.position
+    $   mem.position.cs_btop = f.payload.minionsKilled
+    $elif(r == team.blue.mid):
+    $   mem.position.blue_mid = f.payload.position
+    $   mem.position.cs_bmid = f.payload.minionsKilled
+    $elif(r == team.blue.supp):
+    $   mem.position.blue_supp = f.payload.position
+    $   mem.position.cs_bsupp = f.payload.minionsKilled
+    $elif(r == team.blue.jg):
+    $   mem.position.blue_jg = f.payload.position
+    $   mem.position.cs_bjg = f.payload.minionsKilled
+
+[mk.peeling]
+description = Ally peeling supp-adc
+#starttimes=[0, 10*60, 20*60, 30*60, 40*60]
+start_condition = return mem.position.done
+stop_condition = return True
+count_policy =$
+    $d = distance(mem.position.red_adc, mem.position.red_supp)
+    $#mem.position.done = False
+    $#print(c)
+    $if(d > 1500):
+    $   return c
+    $else: return (c + 250/d)
+
+[mem.lane]
+int cs_past_red = 0
+int cs_past_blue = 0
+
+[mk.lane_effectivity]
+description = How effective was the laner on the farming phase
+    Takes into account:
+    -   When it is active on the lane, calculate score.
+start_condition = return mem.position.done or f.type == TYPE.CHAMPION_KILL
+stop_condition = return True
+count_policy =$
+    $tdist = distance(rift.red.mid.outer.position, rift.blue.mid.outer.position)
+    $active = distance(mem.position.red_mid, mem.position.blue_mid) < tdist
+    $print(c)
+    $if(active and mem.position.done):
+    $   red_cs_diff = (mem.position.cs_rmid-mem.lane.cs_past_red)/12
+    $   blue_cs_diff = (mem.position.cs_bmid-mem.lane.cs_past_blue)/12
+    $   mem.lane.cs_past_red = mem.position.cs_rmid
+    $   mem.lane.cs_past_blue = mem.position.cs_bmid
+    $   return c + red_cs_diff - blue_cs_diff
+    $if(active and f.type == TYPE.CHAMPION_KILL and ROLE[f.payload.victimId] == team.blue.mid):
+    $   return c
+    $return c
+
+[mk.close_position]
+description = Closes mem.position.done
+start_condition = return mem.position.done
+stop_condition = return True
+count_policy =$
+    $mem.position.done = False
+
+#[mk.line_push]

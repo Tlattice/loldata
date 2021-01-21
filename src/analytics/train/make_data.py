@@ -3,6 +3,7 @@ from collections import OrderedDict
 from GHSOM import GHSOM
 import json
 import pickle
+from tqdm import tqdm
 
 def neval(ghsom, data):
     distances = list()
@@ -31,8 +32,11 @@ if __name__ == '__main__':
     print("Done")
     
     #input_data = np.array( data.values(), dtype=float)
+    print([data[k] for k in data if '_bluewon' in k])
+    #print(model)
     training_data = {'vectors':[], 'labels':[]}
-    for k in data:
+    #for filename in tqdm(filenames):
+    for k in tqdm(data):
         if not '_bluewon' in k:
             training_data['labels'].append(data[k+'_bluewon'])
             team = data[k]
@@ -43,5 +47,6 @@ if __name__ == '__main__':
                 batch.append(nid)
             training_data['vectors'].append(np.array(batch, dtype=float))
     print("Saving training data...")
+    print(training_data)
     with open('output/training_data.pkl', 'wb') as f:
         pickle.dump(training_data, f)

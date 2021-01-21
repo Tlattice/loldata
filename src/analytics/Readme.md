@@ -1,7 +1,6 @@
 # RankeMeUp core predictor
 
-Uses an Extract, Transform and Train methodology for
-game outcomes prediction.
+Uses an Extract, Transform and Train methodology for prediction of game outcomes.
 
 ## Extract Stage
 

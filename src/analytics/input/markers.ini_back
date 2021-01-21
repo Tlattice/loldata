@@ -132,3 +132,31 @@ count_policy =$
     $mem.position.done = False
 
 #[mk.line_push]
+
+
+
+[mk.kill_assistances]
+description = @player assisted in killing @enemy
+start_condition = return f.payload.timestamp <= @from
+stop_condition = return f.payload.timestamp >= @to
+count_policy =$
+    $if(f.type == TYPE.CHAMPION_KILL):
+    $   if(f.payload.victimId == PID[@enemy] and f.payload.killerId == PID[@ally] and PID[@player] in f.payload.assistingParticipantIds):
+    $       return c+1
+    $   else:
+    $       return c
+    $else:
+    $   return c
+
+[mk.killed_by_enemy] # 0.757759
+description = @player was killed by @enemy
+start_condition = return f.payload.timestamp <= @from
+stop_condition = return f.payload.timestamp >= @to
+count_policy =$
+    $if(f.type == TYPE.CHAMPION_KILL):
+    $   if(f.payload.victimId == PID[@player] and f.payload.killerId == PID[@enemy]):
+    $       return c+1
+    $   else:
+    $       return c
+    $else:
+    $   return c

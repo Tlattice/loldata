@@ -26,6 +26,8 @@ TEAM_DICT = {
 10:  'TEAM.R_JG'
 }
 
+TIN = {k:v for v, k in TEAM_DICT.items()}
+
 class DictX(dict):
     def __getattr__(self, key):
         try:
@@ -119,8 +121,8 @@ def map_players_by_point(participants, participantFrames):
                     i = j
                     v = l[j]
         return i
-    for participant in participants:
-        pid[participant[u'participantId']][u'champ'] = participant[u'championId']
+    #for participant in participants:
+    #    pid[participant[u'participantId']][u'champ'] = participant[u'championId']
     #print participantFrames
     for pf in participantFrames:
         for frame in pf.values():

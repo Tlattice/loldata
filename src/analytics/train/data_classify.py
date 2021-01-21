@@ -4,9 +4,12 @@ from growing_hierarchical_som.GHSOM import GHSOM
 from matplotlib import pyplot as plt
 import json
 import pickle
+import pymongo
+import bz2
+from scipy.sparse import csr_matrix, vstack
 
-data_shape = 11
-
+#data_shape = 11
+SHAPE = 451
 
 def __gmap_to_matrix(gmap):
     gmap = gmap[0]
@@ -116,23 +119,27 @@ def dispersion_rate(ghsom, dataset):
 
     return __number_of_neurons(ghsom) / used_neurons
 
+#dbclient = pymongo.MongoClient("mongodb://localhost:27017/")
+#traindb = dbclient["train_data"]
+#processed_data = traindb["processed_data"]
+#data = np.array([x['data'] for x in processed_data.find({})])
+
 
 if __name__ == '__main__':
-    with open('output/results.json', 'r') as fp:
-        data = json.load(fp)
-    data = [data[k][p] for k in data for p in range(10) if not '_bluewon' in k]
-    data = np.array(data)
-    
+    print("Loading data...")
+    data = pickle.load( open( "output/results.pkl", "rb" ) )
+    data = [y for x in data for y in x]
+    data = vstack( data ).A
+    print("Training data...")
     np.random.shuffle(data)
-    data = data[:]
     n_samples, n_features = data.shape
     labels = list(range(10))
     print("dataset length: {}".format(n_samples))
     print("features per example: {}".format(n_features))
-    ghsom = GHSOM(input_dataset=data, t1=0.1, t2=0.0001, learning_rate=0.15, decay=0.95, gaussian_sigma=1.5)
+    ghsom = GHSOM(input_dataset=data[:200000], t1=0.1, t2=0.0001, learning_rate=0.15, decay=0.95, gaussian_sigma=1.5)
     print("Training...")
     zero_unit = ghsom.train(epochs_number=15, dataset_percentage=0.50, min_dataset_size=30, seed=0, grow_maxiter=10)
     print(zero_unit)
-    print(mean_data_centroid_activation(zero_unit, data))
-    print(dispersion_rate(zero_unit, data))
+    #print(mean_data_centroid_activation(zero_unit, data))
+    #print(dispersion_rate(zero_unit, data))
     pickle.dump( zero_unit, open( "output/classify_model.model", "wb" ) )

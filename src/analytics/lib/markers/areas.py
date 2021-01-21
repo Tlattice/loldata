@@ -1,6 +1,7 @@
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 from scipy.spatial.distance import cdist
+from dynamic_model.rift import *
 
 BLUE_JG_BLUE =  [(4140, 5200), 
             (4100, 5350), 
@@ -50,6 +51,8 @@ RED_MID_POLYGON = Polygon(RED_MID)
 BLUE_MID_POLYGON = Polygon(BLUE_MID)
 RED_BOT_POLYGON = Polygon(RED_BOT)
 BLUE_BOT_POLYGON = Polygon(BLUE_BOT)
+
+#Using areas
 
 def INBLUEJG(point):
     p = Point(point[u'x'], point[u'y'])
@@ -104,10 +107,11 @@ def INBLUEBOT(point):
         p = Point(point[0], point[1])
     return BLUE_BOT_POLYGON.contains(p)
 
-def distance(pos1, pos2):
-    a = [[pos1[u'x'], pos1[u'y']]]
-    b = [[pos2[u'x'], pos2[u'y']]]
-    return scipy.cdist(a,b)
+
+#def distance(pos1, pos2):
+#    a = [[pos1[u'x'], pos1[u'y']]]
+#    b = [[pos2[u'x'], pos2[u'y']]]
+#    return scipy.cdist(a,b)
 
 class DictX(dict):
     def __getattr__(self, key):

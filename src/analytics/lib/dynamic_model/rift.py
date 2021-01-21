@@ -7,8 +7,14 @@ TOWER, INHIBITOR = 1, 0
 
 # TODO: Put these routines in other lib
 def distance(posa, posb):
-    rposa = np.array([posa[u'x'], posa[u'y']])
-    rposb = np.array([posb[u'x'], posb[u'y']])
+    if type(posa) is dict:
+        rposa = np.array([posa[u'x'], posa[u'y']])
+    else:
+        rposa = np.array(posa)
+    if type(posb) is dict:
+        rposb = np.array([posb[u'x'], posb[u'y']])
+    else:
+        rposb = np.array(posb)
     return np.linalg.norm(rposa-rposb)
     
 def vector(pos):
@@ -31,8 +37,18 @@ class minute:
             return True
         else: 
             return False
+    def __ge__(self, other): 
+        if(self.number>=other*(1-self.ep)): 
+            return True
+        else: 
+            return False
     def __lt__(self, other): 
         if(self.number<other*(1+self.ep)): 
+            return True
+        else: 
+            return False
+    def __le__(self, other): 
+        if(self.number<=other*(1+self.ep)): 
             return True
         else: 
             return False

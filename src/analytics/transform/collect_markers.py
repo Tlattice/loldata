@@ -7,6 +7,10 @@ from dynamic_model.rift import *
 import os
 import json
 import configparser
+from tqdm import tqdm
+import numpy
+import pymongo
+
 
 # Paths
 MATCH_PATH = 'output/match/'
@@ -15,6 +19,14 @@ TIMELINE_PATH = 'output/time/'
 # Read and create markers
 config = configparser.ConfigParser()
 config.read('input/markers.ini')
+
+dbclient = pymongo.MongoClient("mongodb://localhost:27017/")
+playsdb = dbclient["plays"]
+matchescollection = playsdb["matches"]
+timescollection = playsdb["timelines"]
+matches = matchescollection.find({})
+times = timescollection.find({})
+
 
 # Check if the program is set verbose
 VERBOSE = False
@@ -64,8 +76,10 @@ class MarkerTemplate:
     def iter(self):
         return self.l
 
+# ----------------------------------------------------------------------
+#                         Loading init file
+# ----------------------------------------------------------------------
 templates = [] # holds the code templates
-
 for name in config:
     if name == 'DEFAULT':
         continue
@@ -113,133 +127,105 @@ for name in config:
             elif attr == 'start_condition':
                 print("-- Adding start description")
                 marker.append("def startcondition(f):"+config[name][attr].replace("$", " "))
-                #exec("def startcondition(f):"+config[name][attr].replace("$", " "))
             elif attr == 'stop_condition':
                 print("-- Adding stop description")
-                #exec("def stopcondition(f):"+config[name][attr].replace("$", "  "))
                 marker.append("def stopcondition(f):"+config[name][attr].replace("$", "  "))
             elif attr == 'count_policy':
                 print("-- Adding count policy")
-                #exec("def countpolicy(f, c):\n"+config[name][attr].replace("$", "   "))
                 marker.append("def countpolicy(f, c):\n"+config[name][attr].replace("$", "   "))
             else:
                 print("Error: Non-recognized parameter")
         templates.append(marker)
-            #mks.append(Marker(description,
-            #           Trigger(startcondition, stopcondition),
-            #           Counter(countpolicy)
-            #          ))
         continue
 
+
+# ----------------------------------------------------------------------
+#                         Creating markers
+# ----------------------------------------------------------------------
 config_iter = {
 'blue': [list(range(1, 6)), range(6, 11)],
 'red': [range(6, 11), range(1, 6)]
 }
-
-timeslices = [(0, 10), (10, 20), (20, 30), (30, 40), (50, 60)]
+timeslices = [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 35), (35, 40), (40, 45)]
 for code in templates:
-    #print(len(templates))
     # @player, @enemy, @ally, @team, @from, @to
     # e.g: rift.@team.mid.position
     for tteam in config_iter:
-        #print("--------------------")
-        #print("team", tteam)
         playerteam = config_iter[tteam][0]
         enemyteam = config_iter[tteam][1]
         teamcode = MarkerTemplate(code)
         ainteam = code.replace('@team', tteam)
         for player in playerteam:
             player_markers = []
-            #print(" player", player)
             playercode = MarkerTemplate(teamcode)
             ainplayer = playercode.replace('@player', TEAM_DICT[player])
             for fromtime, totime in timeslices:
-                #print("     fromtime, totime", fromtime, totime)
                 timecode = MarkerTemplate(playercode)
                 ainfrom = timecode.replace('@from', fromtime)
                 ainto = timecode.replace('@to', totime)
+                slicedmarkers = []
                 for enemy in enemyteam:
-                    #print("         enemy", enemy)
                     enemycode = MarkerTemplate(timecode)
                     ainenemy = enemycode.replace('@enemy', TEAM_DICT[enemy])
                     for ally in playerteam:
-                        #print("             ally", ally)
                         allycode = MarkerTemplate(enemycode)
                         ainally = allycode.replace('@ally', TEAM_DICT[ally])
-                        #if player==ally: #omitted for predictability
-                        #    continue
                         l = allycode.iter()
                         description = l[0]
                         exec(l[1])
                         exec(l[2])
                         exec(l[3])
-                        #player_markers.append( Marker( l[0], Trigger(exec(l[1]), exec(l[2])), Counter(exec(l[3])) ) )
-                        #mks[player].append(Marker(description, Trigger(startcondition, stopcondition), Counter(countpolicy)))
-                        player_markers.append(Marker(description, Trigger(startcondition, stopcondition), Counter(countpolicy)))
+                        slicedmarkers.append(Marker(description, Trigger(startcondition, stopcondition), Counter(countpolicy)))
                         if not ainally:
                             break
                     if not ainenemy:
                         break
                 if not (ainto or ainfrom):
                     break
-            #print('player ', player)
-            #print(mks)
-            #print(player_markers)
-            #mks[player-1].append(player_markers)
+                player_markers.append(slicedmarkers)
             mks[player-1] += player_markers
             if not ainplayer:
                 break
-        #if not ainteam:
-        #    break
 # ----------------------------------------------------------------------
 #                         Applying markers
 # ----------------------------------------------------------------------
-#print(mks)
 filenames = []
 results = {}
-for cfilename in os.listdir(MATCH_PATH):
-    filename = cfilename[:-5]
-    try:
-        with open(MATCH_PATH+cfilename) as file:
-            match = json.loads(file.read())
-        with open(TIMELINE_PATH+filename+'_timeline.json') as file:
-            timeline = json.loads(file.read())
-    except:
-        print("Error: not such a file: "+filename)
-        continue
+
+for timeline in tqdm(times):
     # Game stats
     try:
-        gid = match[u'gameId']
-        ROLE = map_players_by_point(match[u'participants'], [frame[u'participantFrames'] for frame in timeline[u'frames'][1:6]])
-    except:
+        if(len(timeline[u'frames']) < 6):
+            print("Team surrendered")
+            continue
+        ROLE = map_players_by_point({}, [frame[u'participantFrames'] for frame in timeline[u'frames'][1:8]])
+    except Exception as e:
         print("Error reading frames")
+        print(e)
         continue
     PID = get_PID(ROLE)
-    #if(True):
     try:
         for raw_frames in timeline[u'frames']:
             for frame in Frames(raw_frames):
                 rift(frame)
-                for pmarker in mks:
-                    for marker in pmarker:
-                        marker(frame)
-    #else:
-    except:
-        print("Error when executing a marker: ", filename)
+                #Single-threaded version
+                for marker in mks:
+                    marker(frame)
+    except Exception as e:
+        print("Error when executing a marker")
+        print(e)
         continue
     # Save results
-    gid = str(gid)
-    results[gid+'_bluewon'] = 1 if match[u'teams'][0][u'win'] == u'Win' else 0
-    results[gid] = [[None for x in range(len(mks[0]))] for x in range(len(mks))]
-    for indexplayer in range(len(mks)):
-        for indexmarker in range(len(mks[0])):
-            results[gid][indexplayer][indexmarker] = mks[indexplayer][indexmarker].count()
-            mks[indexplayer][indexmarker].reset()
+    gid = '1234'
+    #for indexplayer in range(len(mks)):
+    #    results[gid][indexplayer][indexslice][indexmarker] = mks[indexplayer][indexslice][indexmarker].count()
+    #    mks[indexplayer][indexslice][indexmarker].reset()
     #for marker in mks:
     #    results[gid].append(marker.count())
     #    marker.reset()
     mem.reset()
     rift.clean()
+    print(results)
 
 print("Saving results...")
 with open('output/results.json', 'w') as f:

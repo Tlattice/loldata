@@ -1,13 +1,25 @@
 import wget
 import json
 import requests
-import urllib
+import urllib.request
 import time
 import os.path
-import urllib.request as urllib
+#import urllib.request as urllib
+import pymongo
 
-MATCH_PATH = 'output/match/'
-TIMELINE_PATH = 'output/time/'
+GAME_TYPE = 420
+
+DELAY = 0.8
+
+dbclient = pymongo.MongoClient("mongodb://localhost:27017/")
+nplaysdb = dbclient["nplays"]
+cmatches = nplaysdb["matches"]
+ctimes = nplaysdb["timelines"]
+csummoners = nplaysdb["summoners"]
+clist = nplaysdb["list"]
+
+#MATCH_PATH = 'output/match/'
+#TIMELINE_PATH = 'output/time/'
 
 with open('input/rra.key', 'rb') as f:
     KEY = f.readline().decode('utf-8')
@@ -62,8 +74,13 @@ class RiotFetcher:
         print("Getting account id: "+ name)
         url = ID_BY_NAME.format(self.region, name, self.key)
         response = json.loads(requests.get(url).text)
-        self.account_ids.add( response[u'accountId'] )
-        time.sleep(1)
+        # Insert data into the collection
+        csummoners.insert_one(response)
+        try:
+            self.account_ids.add( response[u'accountId'] )
+        except:
+            print("No accountId found.")
+        time.sleep(DELAY)
         
     def save_id(self, name=''):
         self.__get_account_id(name)
@@ -71,46 +88,52 @@ class RiotFetcher:
     def __get_match_list(self, account_id='', depth = 4):
         if account_id:
             account_id = self.account_id
-        url = MATCHLIST_BY_ACCOUNTID.format(self.region, self.account_id, 420, self.key)
+        url = MATCHLIST_BY_ACCOUNTID.format(self.region, self.account_id, GAME_TYPE, self.key)
         print("Retrieving match list: {}".format(account_id))
         response = json.loads(requests.get(url).text)
-        time.sleep(1)
+        time.sleep(DELAY)
         if u'status' in response:
             print("Error retrieving match list.")
             return set()
-        time.sleep(1)
+        time.sleep(DELAY)
         z = [x[u'gameId'] for x in response[u'matches']]
         return set(z[:depth])
     
-    def __get_match_info(self, matchid):
+    def __get_match_info(self, matchid, post_id):
         url = MATCH_BY_ID.format(self.region, matchid, self.key)
         filename = str(matchid)+'.json'
-        try:
-            with open(MATCH_PATH+filename, 'rb') as f:
-                pass
-            print("Match found: {}".format(filename))
-        except:
+        response = cmatches.find_one({'matchId': matchid})
+        if response:
+            print("Match found: {}".format(matchid))
+        else:
             print("Downloading match: {}".format(filename))
-            urllib.urlretrieve(url, filename=MATCH_PATH+filename)
-            time.sleep(1)
-        with open(MATCH_PATH+filename) as fil:
-            data = json.loads(fil.read())
-        if u'status' in data:
-            print("Status found. Skipping.")
+            urllib.request.urlretrieve(url, filename)
+            response = json.loads(requests.get(url).text)
+            response['matchId'] = matchid
+            response['timelineId'] = post_id
+            # Insert match into the database
+            cmatches.insert_one(response)
+            time.sleep(DELAY)
+        if u'status' in response:
+            print("Status error. Skipping.")
             return set()
-        return {x[u'player'][u'accountId'] for x in data[u'participantIdentities']}
+        return {x[u'player'][u'accountId'] for x in response[u'participantIdentities']}
     
     def __get_match_timeline(self, matchid):
         url = MATCH_TIMELINE_BY_ID.format(self.region, matchid, self.key)
         filename = str(matchid)+'_timeline.json'
-        try:
-            with open(TIMELINE_PATH+filename, 'rb') as f:
-                pass
+        response = ctimes.find_one({'matchId': matchid})
+        if response:
             print("Timeline found: {}".format(filename))
-        except:
+            return response['_id']
+        else:
             print("Downloading timeline: {}".format(filename))
-            urllib.urlretrieve(url, filename=TIMELINE_PATH+filename)
-            time.sleep(1)
+            urllib.request.urlretrieve(url, filename)
+            response = json.loads(requests.get(url).text)
+            response['matchId'] = matchid
+            post_id = ctimes.insert_one(response).inserted_id
+            time.sleep(DELAY)
+            return(post_id)
         
     def run(self):
         counter = 0
@@ -119,9 +142,10 @@ class RiotFetcher:
             self.match_list = self.__get_match_list(account_id, self.depth).difference( self.filtered_matches )
             self.filtered_matches = self.filtered_matches.union(self.match_list)
             for match in self.match_list:
-                summoners = self.__get_match_info(match); # Saves the match
-                if summoners:
-                    self.__get_match_timeline(match); # Saves timeline
+                post_id = self.__get_match_timeline(match); # Saves timeline
+                summoners = self.__get_match_info(match, post_id); # Saves the match
+                #if summoners:
+                #    self.__get_match_timeline(match); # Saves timeline
                 self.account_ids = self.account_ids.union(summoners.difference(self.filtered_ids))
             counter += 1
             

@@ -36,8 +36,8 @@
   "devDependencies": {
     "babel-preset-expo": "^8.2.1",
     "cross-env": "~7.0.0",
-    "expo-cli": "~3.11.7",
-    "jest-expo": "^37.0.0"
+    "expo-cli": "~3.28.6",
+    "jest-expo": "^54.0.16"
   },
   "bugs": {
     "url": "https://github.com/creativetimofficial/material-kit-react-native/issues"
